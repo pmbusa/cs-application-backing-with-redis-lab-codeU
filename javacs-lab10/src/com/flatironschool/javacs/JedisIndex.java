@@ -67,8 +67,9 @@ public class JedisIndex {
 	 * @return Set of URLs.
 	 */
 	public Set<String> getURLs(String term) {
-        // FILL THIS IN!
-		return null;
+
+        String key = urlSetKey(term);
+        return jedis.smembers(key);
 	}
 
     /**
@@ -79,8 +80,19 @@ public class JedisIndex {
 	 */
 	public Map<String, Integer> getCounts(String term) {
         // FILL THIS IN!
-		return null;
-	}
+
+        Set<String> set = jedis.smembers(term);
+
+        Map<String, Integer> map = new HashMap<String, Integer>();
+
+        for (String url : set) {
+            map.put(url, getCount(url, term));
+
+            System.out.println("getCount() for " + url + ", and term: " + term + ", is " + getCount(url, term));
+        }
+
+        return map;
+    }
 
     /**
 	 * Returns the number of times the given term appears at the given URL.
@@ -91,7 +103,9 @@ public class JedisIndex {
 	 */
 	public Integer getCount(String url, String term) {
         // FILL THIS IN!
-		return null;
+
+        String count = jedis.hget(termCounterKey(url), term);
+		return Integer.getInteger(count);
 	}
 
 
@@ -219,7 +233,7 @@ public class JedisIndex {
 	 * @param args
 	 * @throws IOException 
 	 */
-	public static void main(String[] args) throws IOException {
+	public static void smain(String[] args) throws IOException {
 		Jedis jedis = JedisMaker.make();
 		JedisIndex index = new JedisIndex(jedis);
 		
@@ -251,4 +265,33 @@ public class JedisIndex {
 		paragraphs = wf.readWikipedia(url);
 		index.indexPage(url, paragraphs);
 	}
+
+    /**
+     * Adds a URL to the set associated with `term`.
+     */
+    public void add(String term, TermCounter tc) {
+        String url = tc.getLabel();
+        //url += termCounterKey(url);
+
+
+        jedis.sadd(urlSetKey(term), url);
+    }
+
+
+
+    /**
+     * Pushes the contents of the TermCounter to Redis.
+     */
+    public List<Object> pushTermCounterToRedis(TermCounter tc) {
+
+        String url = termCounterKey(tc.getLabel());
+        Set<String> termSet = tc.keySet();
+
+        for (String term : termSet) {
+            Integer termInt = tc.get(term);
+            jedis.hset(url, term, termInt.toString());
+        }
+
+        return null;
+    }
 }

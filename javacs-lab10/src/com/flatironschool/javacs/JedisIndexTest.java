@@ -70,6 +70,11 @@ public class JedisIndexTest {
 	public void testGetCounts() {
 		Map<String, Integer> map = index.getCounts("the");
 		assertThat(map.get(url1), is(339));
+        System.out.println("First: " + map.get(url1).toString());
 		assertThat(map.get(url2), is(264));
+        System.out.println("Second: " + map.get(url2).toString());
 	}
+
+
+
 }
