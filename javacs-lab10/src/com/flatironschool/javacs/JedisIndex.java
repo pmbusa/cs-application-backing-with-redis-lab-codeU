@@ -117,6 +117,14 @@ public class JedisIndex {
 	 */
 	public void indexPage(String url, Elements paragraphs) {
         // FILL THIS IN!
+
+        TermCounter tc = new TermCounter(url);
+        tc.processElements(paragraphs);
+
+        for (String term : tc.keySet()) {
+            jedis.hincrBy(termCounterKey(url), term, 1);
+        }
+
 	}
 
 	/**
@@ -284,14 +292,19 @@ public class JedisIndex {
      */
     public List<Object> pushTermCounterToRedis(TermCounter tc) {
 
-        String url = termCounterKey(tc.getLabel());
+        String tcKey = termCounterKey(tc.getLabel());
         Set<String> termSet = tc.keySet();
+
+        Transaction transaction = jedis.multi();
+
+        transaction.del(tcKey);
 
         for (String term : termSet) {
             Integer termInt = tc.get(term);
-            jedis.hset(url, term, termInt.toString());
+            transaction.hset(tcKey, term, termInt.toString());
+            transaction.sadd(urlSetKey(term), tc.getLabel());
         }
 
-        return null;
+        return transaction.exec();
     }
 }
